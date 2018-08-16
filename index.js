@@ -14,9 +14,127 @@ app.get('/', function (req, res) {
 });
 
 
-// var post_data = '{ \"head\": { \"sessionid\": \"undefined\", \"userid\": \"\", \"freeloginuser\": true, \"seqid\": null }, \"body\": { \"param1\": { \"basetype\": \"192.168.60.90\" }, \"param2\": { \"basetype\": 4096 }, \"param3\": { \"basetype\": 2 } } }'; 
+
+
+var terminalIP = ""
+
+
+var getMtModel = function () {
+  axios.get('http://192.168.60.26/mtapi/entity/globalstate?{"head":{"sessionid":"undefined","seqid":null},"body":{}}')
+    .then((response) => {
+      if (response.data.body.achSerialNum == 'KDC003002') {
+        console.log(response.data.body.achSerialNum)
+      }
+    })
+}
+
+var config = new Object();
+config = {
+  method: 'post',
+  url: 'http://192.168.60.26/mtapi/audio/quietlocalspeaker',
+  data: muteData
+}
+
+function objReplaceKeyValue(obj, key, str1, str2) {
+  console.log(key, str1, str2);
+  obj[key] = obj[key].replace(str1, str2);
+  return obj;
+}
+
+
+var timer = {
+  timer: ['function', 'interval', 'count']
+}
+
+io.on('connection', function (socket) {
+  socket.on('terminalIP', (terminalIP) => {
+    terminalIP = terminalIP
+    console.log(terminalIP)
+    io.emit('terminalIP', terminalIP);
+    GetAndEmit(terminalIP, 'terminalIP', globalstate)
+  })
+
+
+  socket.on('startcount', (flag) => {
+    console.log(flag)
+    if (flag) {
+      timer.getTer.push(setInterval(() => {
+        console.log("counting")
+      }, 1000))
+    } else {
+      timer.getTer.forEach((getTer) => {
+        clearInterval(getTer)
+        console.log("deled")
+      });
+      timer.getTer = []
+    }
+  });
+
+  socket.on('addTimer', ([a, b, c]) => {
+    addTimer(a,b,c)
+    timer[a][0]
+  })
+
+  socket.on('removeTimer', (timerName)=>{
+    removetimer(timerName)
+  })
+
+});
+
+
+
+
+
+
+
+http.listen(port, function () {
+  console.log('listening on *:' + port);
+});
+
+//  var localhost = address.ip();
+//  opn('http://' + (localhost || 'localhost') + ':' + port)
+
+var globalstate = '/mtapi/entity/globalstate?*'
+
+
+function addTimer(eventName,interval, count) {
+  timer[eventName] = [, interval, count,]
+  let i = 0
+  timer[eventName][0] = setInterval(
+    () => {
+      i += 1
+      if (i >= timer[eventName][2]) {
+        clearInterval(timer[eventName][0])
+      }
+      console.log(i)
+    }, interval * 1000)
+}
+
+
+function removetimer(timerName) {
+  clearInterval(timer[timerName][0])
+  console.log('timer: ' + timerName + ' destroyed!')
+  timer[timerName] = []
+}
+
+
+
+
+
+function GetAndEmit(IP, eventName, api) {
+  let url = 'http://' + IP + api
+  axios.get(url).then((response) => {
+    let responseBody = response.data.body
+    io.emit(eventName, responseBody)
+    return responseBody
+  }).catch((error) => {
+    io.emit(eventName, error)
+  })
+
+}
+
+
 var muteData = '{ "head": { "sessionid": "undefined", "seqid": null }, "body": { "basetype": true } }';
-// var url= 'http://192.168.60.26/mtapi/audio/quietlocalspeaker';
 
 var EmMtModel = {
   "emX500": "X500",
@@ -61,60 +179,3 @@ var EmMtModel = {
   "em1001080P3012XCS": "MT1001080P3012XCS"
 };
 //默认值为X500类型
-
-var a = `true`
-var getMtModel=  function() {
-  axios.get('http://192.168.60.26/mtapi/entity/globalstate?{"head":{"sessionid":"undefined","seqid":null},"body":{}}')
-  .then((response) => { 
-    if (response.data.body.achSerialNum == 'KDC003002'){
-      a = '1'
-    }
-
-  
-  })
-
-}
-getMtModel()
-
-var config = new Object();
-config = {
-  method: 'post',
-  url: 'http://192.168.60.26/mtapi/audio/quietlocalspeaker',
-  data: muteData
-}
-
-function objReplaceKeyValue(obj, key, str1, str2) {
-  console.log(key, str1, str2);
-  obj[key] = obj[key].replace(str1, str2);
-  return obj;
-}
-
-
-// setInterval(() => {
-//   var info = getMtModel()
-//   io.emit('chat message',info);
-//   console.log(info)
-// }, 500);
-
-io.on('connection', function (socket) {
-  socket.on('chat message', function (msg) {
- 
-  });
-  io.emit('chat message', a);
-
-  socket.on('ADD', function (data) {
-    axios.get('http://192.168.60.26/mtapi/entity/globalstate?{"head":{"sessionid":"undefined","seqid":null},"body":{}}').then((response) => {
-      console.log(response.data.body.achSerialNum);
-      getMtModel();
-      io.emit('chat message', a);
-    })
-  });
-
-});
-
-http.listen(port, function () {
-  console.log('listening on *:' + port);
-});
-
- var localhost = address.ip();
- opn('http://' + (localhost || 'localhost') + ':' + port)
